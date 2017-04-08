@@ -10,6 +10,19 @@ import org.apache.spark.sql.SparkSession
   */
 object Extraction {
 
+  // Set the log level to only print errors
+  Logger.getLogger("org").setLevel(Level.ERROR)
+
+  // Use new SparkSession interface in Spark 2.0
+  private[observatory] val sparkSession: SparkSession =
+    SparkSession.builder
+      .appName("Extraction")
+      .master("local[*]")
+      .getOrCreate()
+
+  // Infer the schema, and register the DataSet as a table.
+  import sparkSession.implicits._
+
   /**
     * @param year             Year number
     * @param stationsFile     Path of the stations resource file to use (e.g. "/stations.csv")
@@ -18,39 +31,8 @@ object Extraction {
     */
   def locateTemperatures(year: Int, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
 
-    // Set the log level to only print errors
-    Logger.getLogger("org").setLevel(Level.ERROR)
-
-    // Use new SparkSession interface in Spark 2.0
-    val sparkSession = SparkSession
-      .builder
-      .appName("Extraction")
-      .master("local[*]")
-      .getOrCreate()
-
-    // Infer the schema, and register the DataSet as a table.
-    import sparkSession.implicits._
-
-    // Read each line of input data
-    val stations = sparkSession.sparkContext.textFile(stationsFile)
-      .map(_.split(","))
-      .filter(_.length == 4)
-      .filter(_.forall(_.nonEmpty))
-      .map(fields => Station(fields(0), fields(1), fields(2).toDouble, fields(3).toDouble))
-      .filter(_.lat != 0.0)
-      .filter(_.lon != 0.0)
-      .toDS() //.cache()
-
-    val temperatures = sparkSession.sparkContext.textFile(temperaturesFile)
-      .map(_.split(","))
-      .filter(_.length == 5)
-      .filter(_.forall(_.nonEmpty))
-      .map(fields => Record(fields(0), fields(1), fields(2).toInt, fields(3).toInt, fields(4).toDouble))
-      .filter(_.temp != 9999.9)
-      .toDS() //.cache()
-
-    stations.createOrReplaceTempView("stations")
-    temperatures.createOrReplaceTempView("temperatures")
+    readStations(stationsFile)
+    readTemperatures(temperaturesFile)
 
     sparkSession.sql(
       """select s.lat, s.lon, t.month, t.day, t.temp
@@ -64,6 +46,27 @@ object Extraction {
       .collect()
       // transform java.sql.Date object to LocalDate
       .map(row => (row._1.toLocalDate, row._2, row._3))
+  }
+
+  private def readStations(stationsFile: String) = {
+    sparkSession.sparkContext.textFile(Extraction.getClass.getResource(stationsFile).toExternalForm)
+      .map(_.split(","))
+      .filter(_.length == 4)
+      .filter(_.forall(_.nonEmpty))
+      .map(fields => Station(fields(0).toInt, fields(1).toInt, fields(2).toDouble, fields(3).toDouble))
+      .filter(_.lat != 0.0)
+      .filter(_.lon != 0.0)
+      .toDF().createOrReplaceTempView("stations")
+  }
+
+  private def readTemperatures(temperaturesFile: String) = {
+    sparkSession.sparkContext.textFile(Extraction.getClass.getResource(temperaturesFile).toExternalForm)
+      .map(_.split(","))
+      .filter(_.length == 5)
+      .filter(_.forall(_.nonEmpty))
+      .map(fields => Record(fields(0).toInt, fields(1).toInt, fields(2).toInt, fields(3).toInt, fields(4).toDouble))
+      .filter(_.temp != 9999.9)
+      .toDF().createOrReplaceTempView("temperatures")
   }
 
   /**
