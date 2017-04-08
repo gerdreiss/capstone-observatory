@@ -35,22 +35,18 @@ object Extraction {
     val stations = sparkSession.sparkContext.textFile(stationsFile)
       .map(_.split(","))
       .filter(_.length == 4)
-      .filter(_ (0).nonEmpty) // we need the STN ID
-      .filter(_ (1).nonEmpty) // we need the WBAN ID
-      .filter(_ (2).nonEmpty) // we need the latitude
-      .filter(_ (3).nonEmpty) // we need the longitude
+      .filter(_.forall(_.nonEmpty))
       .map(fields => Station(fields(0), fields(1), fields(2).toDouble, fields(3).toDouble))
+      .filter(_.lat != 0.0)
+      .filter(_.lon != 0.0)
       .toDS() //.cache()
 
     val temperatures = sparkSession.sparkContext.textFile(temperaturesFile)
       .map(_.split(","))
       .filter(_.length == 5)
-      .filter(_ (0).nonEmpty) // we need the STN ID
-      .filter(_ (1).nonEmpty) // we need the WBAN ID
-      .filter(_ (2).nonEmpty) // we need the month
-      .filter(_ (3).nonEmpty) // we need the day
-      .filter(_ (4).nonEmpty) // we need the temperature
+      .filter(_.forall(_.nonEmpty))
       .map(fields => Record(fields(0), fields(1), fields(2).toInt, fields(3).toInt, fields(4).toDouble))
+      .filter(_.temp != 9999.9)
       .toDS() //.cache()
 
     stations.createOrReplaceTempView("stations")
@@ -59,7 +55,7 @@ object Extraction {
     sparkSession.sql(
       """select s.lat, s.lon, t.month, t.day, t.temp
            from stations s
-           join temperatures t on s.stnId = t.stnId and s.wbanId = t.wbanId""")
+           join temperatures t on s.stn = t.stn and s.wban = t.wban""")
       .map(row => (
         // create Date object as there is no encoder for LocalDate
         java.sql.Date.valueOf(LocalDate.of(year, row.getAs[Int]("month"), row.getAs[Int]("day"))),
