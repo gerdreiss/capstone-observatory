@@ -3,7 +3,7 @@ package observatory
 import java.time.LocalDate
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
 
 import scala.util.Try
 
@@ -36,26 +36,31 @@ object Extraction {
     readStations(stationsFile)
     readTemperatures(temperaturesFile)
 
+    import scala.reflect.ClassTag
+    implicit def kryoEncoder[A](implicit ct: ClassTag[A]) = org.apache.spark.sql.Encoders.kryo[A](ct)
+    implicit def tuple3[A1, A2, A3](implicit e1: Encoder[A1], e2: Encoder[A2], e3: Encoder[A3]): Encoder[(A1, A2, A3)] =
+      Encoders.tuple[A1, A2, A3](e1, e2, e3)
+
     sparkSession.sql(
       """select s.lat, s.lon, t.month, t.day, t.temp
            from stations s
            join temperatures t on s.stn = t.stn and s.wban = t.wban""")
       .map(row => (
         // create Date object as there is no encoder for LocalDate
-        java.sql.Date.valueOf(LocalDate.of(year, row.getAs[Int]("month"), row.getAs[Int]("day"))),
+        LocalDate.of(year, row.getAs[Int]("month"), row.getAs[Int]("day")),
         Location(row.getAs[Double]("lat"), row.getAs[Double]("lon")),
         row.getAs[Double]("temp")))
       .collect()
       // transform java.sql.Date object to LocalDate
-      .map(row => (row._1.toLocalDate, row._2, row._3))
+      .map(row => (row._1, row._2, row._3))
   }
 
   private def readStations(stationsFile: String) = {
     sparkSession.sparkContext.textFile(Extraction.getClass.getResource(stationsFile).toExternalForm)
       .map(_.split(","))
       .filter(_.length == 4)
-      .filter(_(2).nonEmpty)
-      .filter(_(3).nonEmpty)
+      .filter(_ (2).nonEmpty)
+      .filter(_ (3).nonEmpty)
       .map(fields => Station(Try(fields(0).toInt).getOrElse(0), Try(fields(1).toInt).getOrElse(0), fields(2).toDouble, fields(3).toDouble))
       .filter(_.lat != 0.0)
       .filter(_.lon != 0.0)
@@ -66,9 +71,9 @@ object Extraction {
     sparkSession.sparkContext.textFile(Extraction.getClass.getResource(temperaturesFile).toExternalForm)
       .map(_.split(","))
       .filter(_.length == 5)
-      .filter(_(2).nonEmpty)
-      .filter(_(3).nonEmpty)
-      .filter(_(4).nonEmpty)
+      .filter(_ (2).nonEmpty)
+      .filter(_ (3).nonEmpty)
+      .filter(_ (4).nonEmpty)
       .map(fields => Record(Try(fields(0).toInt).getOrElse(0), Try(fields(1).toInt).getOrElse(0), fields(2).toInt, fields(3).toInt, fields(4).toDouble))
       .filter(_.temp != 9999.9)
       .toDF().createOrReplaceTempView("temperatures")
