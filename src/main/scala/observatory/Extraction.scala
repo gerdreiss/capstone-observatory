@@ -5,6 +5,8 @@ import java.time.LocalDate
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.SparkSession
 
+import scala.util.Try
+
 /**
   * 1st milestone: data extraction
   */
@@ -52,8 +54,9 @@ object Extraction {
     sparkSession.sparkContext.textFile(Extraction.getClass.getResource(stationsFile).toExternalForm)
       .map(_.split(","))
       .filter(_.length == 4)
-      .filter(_.forall(_.nonEmpty))
-      .map(fields => Station(fields(0).toInt, fields(1).toInt, fields(2).toDouble, fields(3).toDouble))
+      .filter(_(2).nonEmpty)
+      .filter(_(3).nonEmpty)
+      .map(fields => Station(Try(fields(0).toInt).getOrElse(0), Try(fields(1).toInt).getOrElse(0), fields(2).toDouble, fields(3).toDouble))
       .filter(_.lat != 0.0)
       .filter(_.lon != 0.0)
       .toDF().createOrReplaceTempView("stations")
@@ -63,8 +66,10 @@ object Extraction {
     sparkSession.sparkContext.textFile(Extraction.getClass.getResource(temperaturesFile).toExternalForm)
       .map(_.split(","))
       .filter(_.length == 5)
-      .filter(_.forall(_.nonEmpty))
-      .map(fields => Record(fields(0).toInt, fields(1).toInt, fields(2).toInt, fields(3).toInt, fields(4).toDouble))
+      .filter(_(2).nonEmpty)
+      .filter(_(3).nonEmpty)
+      .filter(_(4).nonEmpty)
+      .map(fields => Record(Try(fields(0).toInt).getOrElse(0), Try(fields(1).toInt).getOrElse(0), fields(2).toInt, fields(3).toInt, fields(4).toDouble))
       .filter(_.temp != 9999.9)
       .toDF().createOrReplaceTempView("temperatures")
   }
