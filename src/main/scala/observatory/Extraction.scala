@@ -5,6 +5,7 @@ import java.time.LocalDate
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
@@ -25,6 +26,12 @@ object Extraction {
   // Infer the schema, and register the DataSet as a table.
   import sparkSession.implicits._
 
+  implicit def kryoEncoder[A](implicit ct: ClassTag[A]): Encoder[A] =
+    org.apache.spark.sql.Encoders.kryo[A](ct)
+
+  implicit def tuple3[A1, A2, A3](implicit e1: Encoder[A1], e2: Encoder[A2], e3: Encoder[A3]): Encoder[(A1, A2, A3)] =
+    Encoders.tuple[A1, A2, A3](e1, e2, e3)
+
   /**
     * @param year             Year number
     * @param stationsFile     Path of the stations resource file to use (e.g. "/stations.csv")
@@ -35,11 +42,6 @@ object Extraction {
 
     readStations(stationsFile)
     readTemperatures(temperaturesFile)
-
-    import scala.reflect.ClassTag
-    implicit def kryoEncoder[A](implicit ct: ClassTag[A]) = org.apache.spark.sql.Encoders.kryo[A](ct)
-    implicit def tuple3[A1, A2, A3](implicit e1: Encoder[A1], e2: Encoder[A2], e3: Encoder[A3]): Encoder[(A1, A2, A3)] =
-      Encoders.tuple[A1, A2, A3](e1, e2, e3)
 
     sparkSession.sql(
       """select s.lat, s.lon, t.month, t.day, t.temp
