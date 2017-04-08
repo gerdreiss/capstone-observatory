@@ -12,7 +12,7 @@ class ExtractionTest extends FunSuite {
   test("Extraction.locateTemperatures from year 2015") {
     val result = Extraction.locateTemperatures(2015,
       "/Users/gerdreiss/Development/99_Projects/observatory/src/main/resources/stations.csv",
-      "/Users/gerdreiss/Development/99_Projects/observatory/src/main/resources/1975.csv")
+      "/Users/gerdreiss/Development/99_Projects/observatory/src/main/resources/2015.csv")
     assert(result.nonEmpty)
   }
 
