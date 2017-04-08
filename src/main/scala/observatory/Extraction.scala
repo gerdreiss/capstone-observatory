@@ -6,7 +6,6 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
 
 import scala.reflect.ClassTag
-import scala.util.Try
 
 /**
   * 1st milestone: data extraction
@@ -40,45 +39,37 @@ object Extraction {
     */
   def locateTemperatures(year: Int, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
 
-    readStations(stationsFile)
-    readTemperatures(temperaturesFile)
+    readStations(stationsFile).createOrReplaceTempView("stations")
+    readTemperatures(temperaturesFile).createOrReplaceTempView("temperatures")
 
     sparkSession.sql(
       """select s.lat, s.lon, t.month, t.day, t.temp
            from stations s
            join temperatures t on s.stn = t.stn and s.wban = t.wban""")
       .map(row => (
-        // create Date object as there is no encoder for LocalDate
         LocalDate.of(year, row.getAs[Int]("month"), row.getAs[Int]("day")),
         Location(row.getAs[Double]("lat"), row.getAs[Double]("lon")),
         row.getAs[Double]("temp")))
       .collect()
-      // transform java.sql.Date object to LocalDate
-      .map(row => (row._1, row._2, row._3))
   }
 
   private def readStations(stationsFile: String) = {
     sparkSession.sparkContext.textFile(Extraction.getClass.getResource(stationsFile).toExternalForm)
       .map(_.split(","))
-      .filter(_.length == 4)
-      .filter(_ (2).nonEmpty)
-      .filter(_ (3).nonEmpty)
-      .map(fields => Station(Try(fields(0).toInt).getOrElse(0), Try(fields(1).toInt).getOrElse(0), fields(2).toDouble, fields(3).toDouble))
+      .filter(Station.valid)
+      .map(Station.parse)
       .filter(_.lat != 0.0)
       .filter(_.lon != 0.0)
-      .toDF().createOrReplaceTempView("stations")
+      .toDF()
   }
 
   private def readTemperatures(temperaturesFile: String) = {
     sparkSession.sparkContext.textFile(Extraction.getClass.getResource(temperaturesFile).toExternalForm)
       .map(_.split(","))
-      .filter(_.length == 5)
-      .filter(_ (2).nonEmpty)
-      .filter(_ (3).nonEmpty)
-      .filter(_ (4).nonEmpty)
-      .map(fields => Record(Try(fields(0).toInt).getOrElse(0), Try(fields(1).toInt).getOrElse(0), fields(2).toInt, fields(3).toInt, fields(4).toDouble))
+      .filter(Record.valid)
+      .map(Record.parse)
       .filter(_.temp != 9999.9)
-      .toDF().createOrReplaceTempView("temperatures")
+      .toDF()
   }
 
   /**
@@ -89,7 +80,9 @@ object Extraction {
     records
       // group by year and location
       .groupBy(t => (t._1.getYear, t._2))
+      // extract the temperature values from the triplets
       .mapValues(_.map(value => value._3)).toSeq
+      // compute the temperature averages
       .map(entry => (entry._1._2, entry._2.sum / entry._2.size))
   }
 }
