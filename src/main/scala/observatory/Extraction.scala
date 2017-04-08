@@ -36,6 +36,7 @@ object Extraction {
       .map(_.split(","))
       .filter(_.length == 4)
       .filter(_ (0).nonEmpty) // we need the STN ID
+      .filter(_ (1).nonEmpty) // we need the WBAN ID
       .filter(_ (2).nonEmpty) // we need the latitude
       .filter(_ (3).nonEmpty) // we need the longitude
       .map(fields => Station(fields(0), fields(1), fields(2).toDouble, fields(3).toDouble))
@@ -45,6 +46,7 @@ object Extraction {
       .map(_.split(","))
       .filter(_.length == 5)
       .filter(_ (0).nonEmpty) // we need the STN ID
+      .filter(_ (1).nonEmpty) // we need the WBAN ID
       .filter(_ (2).nonEmpty) // we need the month
       .filter(_ (3).nonEmpty) // we need the day
       .filter(_ (4).nonEmpty) // we need the temperature
@@ -57,7 +59,7 @@ object Extraction {
     sparkSession.sql(
       """select s.lat, s.lon, t.month, t.day, t.temp
            from stations s
-           join temperatures t on s.stnId = t.stnId""")
+           join temperatures t on s.stnId = t.stnId and s.wbanId = t.wbanId""")
       .map(row => (
         // create Date object as there is no encoder for LocalDate
         java.sql.Date.valueOf(LocalDate.of(year, row.getAs[Int]("month"), row.getAs[Int]("day"))),
