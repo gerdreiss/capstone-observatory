@@ -3,6 +3,7 @@ package observatory
 import java.time.LocalDate
 
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
 
 import scala.reflect.ClassTag
@@ -11,9 +12,6 @@ import scala.reflect.ClassTag
   * 1st milestone: data extraction
   */
 object Extraction {
-
-  // Set the log level to only print errors
-  Logger.getLogger("org").setLevel(Level.ERROR)
 
   // Use new SparkSession interface in Spark 2.0
   private[observatory] val sparkSession: SparkSession =
@@ -24,6 +22,9 @@ object Extraction {
 
   // Infer the schema, and register the DataSet as a table.
   import sparkSession.implicits._
+
+  // Set the log level to only print errors
+  Logger.getLogger("org").setLevel(Level.ERROR)
 
   implicit def kryoEncoder[A](implicit ct: ClassTag[A]): Encoder[A] =
     org.apache.spark.sql.Encoders.kryo[A](ct)
@@ -77,12 +78,22 @@ object Extraction {
     * @return A sequence containing, for each location, the average temperature over the year.
     */
   def locationYearlyAverageRecords(records: Iterable[(LocalDate, Location, Double)]): Iterable[(Location, Double)] = {
-    records
-      // group by year and location
-      .groupBy(t => (t._1.getYear, t._2))
-      // extract the temperature values from the triplets
-      .mapValues(_.map(value => value._3)).toSeq
-      // compute the temperature averages
-      .map(entry => (entry._1._2, entry._2.sum / entry._2.size))
+    // Purely collection based solution
+    //records
+    //  // group by year and location
+    //  .groupBy(t => (t._1.getYear, t._2))
+    //  // extract the temperature values from the triplets
+    //  .mapValues(_.map(value => value._3)).toSeq
+    //  // compute the temperature averages
+    //  .map(entry => (entry._1._2, entry._2.sum / entry._2.size))
+
+    // We better use the power of Spark!
+    sparkSession.sparkContext.parallelize(records.toSeq)
+      .map(r => (r._1.getYear, r._2, r._3))
+      .toDF("year", "loc", "temp")
+      .groupBy($"year", $"loc")
+      .agg($"year", $"loc", avg($"temp").as("temp"))
+      .select($"loc".as[Location], $"temp".as[Double])
+      .collect()
   }
 }
