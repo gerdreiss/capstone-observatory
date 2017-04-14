@@ -9,7 +9,6 @@ import org.apache.spark.sql.functions.sum
   */
 object Visualization {
 
-  // Use new SparkSession interface in Spark 2.0
   private[observatory] val sparkSession: SparkSession =
     SparkSession.builder
       .appName("Visualization")
@@ -29,9 +28,9 @@ object Visualization {
       .getOrElse({
         sparkSession.sparkContext
           .parallelize(temperatures.toSeq)
-          .map(temp => {
-            val idw = location.idw(temp._1)
-            (temp._2 * idw, idw)
+          .map(t => {
+            val idw = location.idw(t._1)
+            (t._2 * idw, idw)
           })
           .toDF("temp", "idw")
           .select(sum($"temp").as[Double], sum($"idw").as[Double])
@@ -49,10 +48,10 @@ object Visualization {
     points.find(_._1 == value)
       .map(_._2)
       .getOrElse({
-        sparkSession.sparkContext
-          .parallelize(points.toSeq)
-          .sortByKey()
-
+        points.dropWhile(_._1 < value).toList match {
+          case p1 :: p2 :: _ => interpolate(p1, p2, value)
+          case             _ => interpolate(points.init.last, points.last, value)
+        }
       })
   }
 
@@ -65,7 +64,7 @@ object Visualization {
     )
   }
 
-  private def interpolate(temp1: Double, rgbp1: Int, temp2: Double, rgbp2: Int, value: Double) = {
+  private def interpolate(temp1: Double, rgbp1: Int, temp2: Double, rgbp2: Int, value: Double): Double = {
     rgbp1 + (value - temp1) * (rgbp2 - rgbp1) / (temp2 - temp1)
   }
 
@@ -77,6 +76,5 @@ object Visualization {
   def visualize(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Image = {
     ???
   }
-
 }
 
