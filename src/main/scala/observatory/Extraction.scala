@@ -3,10 +3,8 @@ package observatory
 import java.time.LocalDate
 
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
-
-import scala.reflect.ClassTag
 
 /**
   * 1st milestone: data extraction
@@ -23,14 +21,10 @@ object Extraction {
   // Infer the schema, and register the DataSet as a table.
   import sparkSession.implicits._
 
+  import observatory.implicits._
+
   // Set the log level to only print errors
   Logger.getLogger("org").setLevel(Level.ERROR)
-
-  implicit def kryoEncoder[A](implicit ct: ClassTag[A]): Encoder[A] =
-    org.apache.spark.sql.Encoders.kryo[A](ct)
-
-  implicit def tuple3[A1, A2, A3](implicit e1: Encoder[A1], e2: Encoder[A2], e3: Encoder[A3]): Encoder[(A1, A2, A3)] =
-    Encoders.tuple[A1, A2, A3](e1, e2, e3)
 
   /**
     * @param year             Year number

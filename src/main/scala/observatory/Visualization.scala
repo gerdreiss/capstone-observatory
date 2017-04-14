@@ -18,7 +18,6 @@ object Visualization {
 
   import sparkSession.implicits._
 
-
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
     * @param location     Location where to predict the temperature
@@ -47,7 +46,27 @@ object Visualization {
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Double, Color)], value: Double): Color = {
-    ???
+    points.find(_._1 == value)
+      .map(_._2)
+      .getOrElse({
+        sparkSession.sparkContext
+          .parallelize(points.toSeq)
+          .sortByKey()
+
+      })
+  }
+
+  private def interpolate(p1: (Double, Color), p2: (Double, Color), value: Double): Color = {
+    import observatory.implicits._
+    Color(
+      interpolate(p1._1, p1._2.red,   p2._1, p2._2.red,   value).toRGB,
+      interpolate(p1._1, p1._2.green, p2._1, p2._2.green, value).toRGB,
+      interpolate(p1._1, p1._2.blue,  p2._1, p2._2.blue,  value).toRGB
+    )
+  }
+
+  private def interpolate(temp1: Double, rgbp1: Int, temp2: Double, rgbp2: Int, value: Double) = {
+    rgbp1 + (value - temp1) * (rgbp2 - rgbp1) / (temp2 - temp1)
   }
 
   /**

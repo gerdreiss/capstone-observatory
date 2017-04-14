@@ -2,7 +2,23 @@ package observatory
 
 import java.lang.Math._
 
+import org.apache.spark.sql.{Encoder, Encoders}
+
+import scala.math.{max, min}
+import scala.reflect.ClassTag
 import scala.util.Try
+
+object implicits {
+  implicit class DoubleToRGB(value: Double) {
+    def toRGB: Int = max(0, min(255, value.toInt))
+  }
+
+  implicit def kryoEncoder[A](implicit ct: ClassTag[A]): Encoder[A] =
+    org.apache.spark.sql.Encoders.kryo[A](ct)
+
+  implicit def tuple3[A1, A2, A3](implicit e1: Encoder[A1], e2: Encoder[A2], e3: Encoder[A3]): Encoder[(A1, A2, A3)] =
+    Encoders.tuple[A1, A2, A3](e1, e2, e3)
+}
 
 case class Location(lat: Double, lon: Double) {
   private val R = 6371e3 // metres
