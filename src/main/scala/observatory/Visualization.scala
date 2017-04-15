@@ -2,6 +2,8 @@ package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel, RGBColor}
 
+import scala.collection.mutable
+
 /**
   * 2nd milestone: basic visualization
   */
@@ -67,7 +69,7 @@ object Visualization {
   }
 
   private def interpolate(temp1: Double, rgbp1: Int, temp2: Double, rgbp2: Int, value: Double): Double = {
-    rgbp1 + (value - temp1) * (rgbp2 - rgbp1) / (temp2 - temp1) + .5
+    rgbp1 + (value - temp1) * (rgbp2 - rgbp1) / (temp2 - temp1)
   }
 
   /**
@@ -81,9 +83,10 @@ object Visualization {
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
     //Spark.session.sparkContext.parallelize(IMAGE_XY)
-    IMAGE_XY
+    val cache = mutable.HashMap[Double, Color]()
+    IMAGE_XY.par
       .map(coord => predictTemperature(temperatures, Location.fromCoord(coord)))
-      .map(temp  => interpolateColor(colors, temp))
+      .map(temp  => cache.getOrElseUpdate(temp, interpolateColor(colors, temp)))
       .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
       .toArray
       //.collect()

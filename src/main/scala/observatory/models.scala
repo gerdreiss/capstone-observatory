@@ -11,7 +11,7 @@ import scala.util.Try
 object implicits {
 
   implicit class DoubleToRGB(value: Double) {
-    def toRGB: Int = max(0, min(255, value.toInt))
+    def toRGB: Int = max(0, min(255, math.round(value).toInt))
   }
 
   implicit def kryoEncoder[A](implicit ct: ClassTag[A]): Encoder[A] =
