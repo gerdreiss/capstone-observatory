@@ -9,6 +9,7 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 object implicits {
+
   implicit class DoubleToRGB(value: Double) {
     def toRGB: Int = max(0, min(255, value.toInt))
   }
@@ -19,6 +20,8 @@ object implicits {
   implicit def tuple3[A1, A2, A3](implicit e1: Encoder[A1], e2: Encoder[A2], e3: Encoder[A3]): Encoder[(A1, A2, A3)] =
     Encoders.tuple[A1, A2, A3](e1, e2, e3)
 }
+
+case class Coord(x: Int, y: Int)
 
 case class Location(lat: Double, lon: Double) {
   private val R = 6371e3 // metres
@@ -36,6 +39,15 @@ case class Location(lat: Double, lon: Double) {
 
   def idw(loc: Location): Double = {
     1 / pow(distanceTo(loc), p)
+  }
+}
+
+object Location {
+  val LAT = 90
+  val LON = 180
+
+  def fromCoord(coord: Coord): Location = {
+    Location(LAT - (coord.y / 2), (coord.x / 2) - LON)
   }
 }
 
