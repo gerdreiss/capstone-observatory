@@ -1,14 +1,11 @@
 package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel, RGBColor}
-import org.apache.spark.sql.functions.sum
 
 /**
   * 2nd milestone: basic visualization
   */
 object Visualization {
-
-  import Spark.session.implicits._
 
   private val W = 360
   private val H = 180
@@ -23,16 +20,24 @@ object Visualization {
     temperatures.find(_._1 == location)
       .map(_._2)
       .getOrElse({
-        Spark.session.sparkContext
-          .parallelize(temperatures.toSeq)
+        //import Spark.session.implicits._
+        //Spark.session.sparkContext
+        //  .parallelize(temperatures.toSeq)
+        //  .map(t => {
+        //    val idw = location.idw(t._1)
+        //    (t._2 * idw, idw)
+        //  })
+        //  .toDF("temp", "idw")
+        //  .select(sum($"temp").as[Double], sum($"idw").as[Double])
+        //  .map(row => row._1 / row._2)
+        //  .first()
+        val result = temperatures.par
           .map(t => {
             val idw = location.idw(t._1)
             (t._2 * idw, idw)
           })
-          .toDF("temp", "idw")
-          .select(sum($"temp").as[Double], sum($"idw").as[Double])
-          .map(row => row._1 / row._2)
-          .first()
+          .foldLeft[(Double, Double)]((0.0, 0.0))((d1, d2) => (d1._1 + d2._1, d1._2 + d2._2))
+        result._1 / result._2
       })
   }
 
@@ -75,11 +80,12 @@ object Visualization {
   }
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
-    Spark.session.sparkContext
-      .parallelize(IMAGE_XY)
+    //Spark.session.sparkContext.parallelize(IMAGE_XY)
+    IMAGE_XY
       .map(coord => predictTemperature(temperatures, Location.fromCoord(coord)))
       .map(temp  => interpolateColor(colors, temp))
       .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
-      .collect()
+      .toArray
+      //.collect()
   }
 }
