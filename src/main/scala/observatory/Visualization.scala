@@ -67,7 +67,7 @@ object Visualization {
   }
 
   private def interpolate(temp1: Double, rgbp1: Int, temp2: Double, rgbp2: Int, value: Double): Double = {
-    rgbp1 + (value - temp1) * (rgbp2 - rgbp1) / (temp2 - temp1)
+    rgbp1 + (value - temp1) * (rgbp2 - rgbp1) / (temp2 - temp1) + .5
   }
 
   /**
