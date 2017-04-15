@@ -11,7 +11,6 @@ object Visualization {
 
   private val W = 360
   private val H = 180
-  private lazy val IMAGE_XY = for (x <- 0 until W; y <- 0 until H) yield Coord(x, y)
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
@@ -82,11 +81,11 @@ object Visualization {
   }
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
-    //Spark.session.sparkContext.parallelize(IMAGE_XY)
-    val cache = mutable.HashMap[Double, Color]()
-    IMAGE_XY.par
+    //Spark.session.sparkContext.parallelize(coords)
+    val coords = for (x <- 0 until W; y <- 0 until H) yield Coord(x, y)
+    coords.par
       .map(coord => predictTemperature(temperatures, Location.fromCoord(coord)))
-      .map(temp  => cache.getOrElseUpdate(temp, interpolateColor(colors, temp)))
+      .map(temp  => interpolateColor(colors, temp))
       .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
       .toArray
       //.collect()
