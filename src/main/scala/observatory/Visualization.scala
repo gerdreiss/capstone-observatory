@@ -1,7 +1,6 @@
 package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel, RGBColor}
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.sum
 
 /**
@@ -9,13 +8,7 @@ import org.apache.spark.sql.functions.sum
   */
 object Visualization {
 
-  private[observatory] val sparkSession: SparkSession =
-    SparkSession.builder
-      .appName("Visualization")
-      .master("local[*]")
-      .getOrCreate()
-
-  import sparkSession.implicits._
+  import Spark.session.implicits._
 
   private val W = 360
   private val H = 180
@@ -30,7 +23,7 @@ object Visualization {
     temperatures.find(_._1 == location)
       .map(_._2)
       .getOrElse({
-        sparkSession.sparkContext
+        Spark.session.sparkContext
           .parallelize(temperatures.toSeq)
           .map(t => {
             val idw = location.idw(t._1)
@@ -82,7 +75,7 @@ object Visualization {
   }
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
-    sparkSession.sparkContext
+    Spark.session.sparkContext
       .parallelize(IMAGE_XY)
       .map(coord => predictTemperature(temperatures, Location.fromCoord(coord)))
       .map(temp  => interpolateColor(colors, temp))

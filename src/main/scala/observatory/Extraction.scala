@@ -3,7 +3,6 @@ package observatory
 import java.time.LocalDate
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
 /**
@@ -11,15 +10,8 @@ import org.apache.spark.sql.functions._
   */
 object Extraction {
 
-  // Use new SparkSession interface in Spark 2.0
-  private[observatory] val sparkSession: SparkSession =
-    SparkSession.builder
-      .appName("Extraction")
-      .master("local[*]")
-      .getOrCreate()
-
   // Infer the schema, and register the DataSet as a table.
-  import sparkSession.implicits._
+  import Spark.session.implicits._
 
   import observatory.implicits._
 
@@ -37,7 +29,7 @@ object Extraction {
     readStations(stationsFile).createOrReplaceTempView("stations")
     readTemperatures(temperaturesFile).createOrReplaceTempView("temperatures")
 
-    sparkSession.sql(
+    Spark.session.sql(
       """select s.lat, s.lon, t.month, t.day, t.temp
            from stations s
            join temperatures t on s.stn = t.stn and s.wban = t.wban""")
@@ -49,7 +41,8 @@ object Extraction {
   }
 
   private def readStations(stationsFile: String) = {
-    sparkSession.sparkContext.textFile(Extraction.getClass.getResource(stationsFile).toExternalForm)
+    Spark.session.sparkContext
+      .textFile(Extraction.getClass.getResource(stationsFile).toExternalForm)
       .map(_.split(","))
       .filter(Station.valid)
       .map(Station.parse)
@@ -59,7 +52,8 @@ object Extraction {
   }
 
   private def readTemperatures(temperaturesFile: String) = {
-    sparkSession.sparkContext.textFile(Extraction.getClass.getResource(temperaturesFile).toExternalForm)
+    Spark.session.sparkContext
+      .textFile(Extraction.getClass.getResource(temperaturesFile).toExternalForm)
       .map(_.split(","))
       .filter(Record.valid)
       .map(Record.parse)
@@ -82,7 +76,8 @@ object Extraction {
     //  .map(entry => (entry._1._2, entry._2.sum / entry._2.size))
 
     // We better use the power of Spark!
-    sparkSession.sparkContext.parallelize(records.toSeq)
+    Spark.session.sparkContext
+      .parallelize(records.toSeq)
       .map(r => (r._1.getYear, r._2, r._3))
       .toDF("year", "loc", "temp")
       .groupBy($"year", $"loc")
