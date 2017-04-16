@@ -46,6 +46,13 @@ object Location {
   def fromCoord(coord: Coord): Location = {
     Location(90 - (coord.y / 2), (coord.x / 2) - 180)
   }
+
+  def fromPixelIndex(index: Int): Location = {
+    def x: Int = index % 360
+    def y: Int = index / 360
+
+    Location(90.0 - y, x - 180)
+  }
 }
 
 case class Color(red: Int, green: Int, blue: Int)

@@ -52,15 +52,11 @@ object Visualization {
 
   private def interpolate(p1: (Double, Color), p2: (Double, Color), value: Double): Color = {
     import observatory.implicits._
-    //Color(
-    //  interpolate(p1._1, p1._2.red,   p2._1, p2._2.red,   value).toRGB,
-    //  interpolate(p1._1, p1._2.green, p2._1, p2._2.green, value).toRGB,
-    //  interpolate(p1._1, p1._2.blue,  p2._1, p2._2.blue,  value).toRGB
-    //)
-    val r = p1._2.red   + (p2._2.red   - p1._2.red)   * (value - p1._1) / (p2._1 - p1._1) + 0.5
-    val g = p1._2.green + (p2._2.green - p1._2.green) * (value - p1._1) / (p2._1 - p1._1) + 0.5
-    val b = p1._2.blue  + (p2._2.blue  - p1._2.blue)  * (value - p1._1) / (p2._1 - p1._1) + 0.5
-    Color(r.toRGB, g.toRGB, b.toRGB)
+    Color(
+      interpolate(p1._1, p1._2.red,   p2._1, p2._2.red,   value).toRGB,
+      interpolate(p1._1, p1._2.green, p2._1, p2._2.green, value).toRGB,
+      interpolate(p1._1, p1._2.blue,  p2._1, p2._2.blue,  value).toRGB
+    )
   }
 
   private def interpolate(temp1: Double, rgbp1: Int, temp2: Double, rgbp2: Int, value: Double): Double = {
@@ -78,9 +74,10 @@ object Visualization {
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
     //Spark.session.sparkContext.parallelize(coords)
-    val coords = for (x <- 0 until 360; y <- 0 until 180) yield Coord(x, y)
-    coords.par
-      .map(coord => predictTemperature(temperatures, Location.fromCoord(coord)))
+    //val coords = for (x <- 0 until 360; y <- 0 until 180) yield Coord(x, y)
+    //coords.par
+    (0 until (180 * 360)).par
+      .map(index => predictTemperature(temperatures, Location.fromPixelIndex(index)))
       .map(temp  => interpolateColor(colors, temp))
       .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
       .toArray
