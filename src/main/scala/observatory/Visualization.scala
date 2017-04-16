@@ -2,15 +2,10 @@ package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel, RGBColor}
 
-import scala.collection.mutable
-
 /**
   * 2nd milestone: basic visualization
   */
 object Visualization {
-
-  private val W = 360
-  private val H = 180
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
@@ -21,6 +16,7 @@ object Visualization {
     temperatures.find(_._1 == location)
       .map(_._2)
       .getOrElse({
+        //import org.apache.spark.sql.functions.sum
         //import Spark.session.implicits._
         //Spark.session.sparkContext
         //  .parallelize(temperatures.toSeq)
@@ -37,7 +33,7 @@ object Visualization {
             val idw = location.idw(t._1)
             (t._2 * idw, idw)
           })
-          .foldLeft[(Double, Double)]((0.0, 0.0))((d1, d2) => (d1._1 + d2._1, d1._2 + d2._2))
+          .foldLeft((0.0, 0.0))((d1, d2) => (d1._1 + d2._1, d1._2 + d2._2))
         result._1 / result._2
       })
   }
@@ -48,14 +44,10 @@ object Visualization {
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Double, Color)], value: Double): Color = {
-    points.find(_._1 == value)
-      .map(_._2)
-      .getOrElse({
-        points.dropWhile(_._1 < value).toList match {
-          case p1 :: p2 :: _ => interpolate(p1, p2, value)
-          case             _ => interpolate(points.init.last, points.last, value)
-        }
-      })
+    points.dropWhile(_._1 < value).toList match {
+      case p1 :: p2 :: _ => interpolate(p1, p2, value)
+      case             _ => interpolate(points.init.last, points.last, value)
+    }
   }
 
   private def interpolate(p1: (Double, Color), p2: (Double, Color), value: Double): Color = {
@@ -77,17 +69,17 @@ object Visualization {
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Image = {
-    Image(W, H, pixels(temperatures, colors))
+    Image(360, 180, pixels(temperatures, colors))
   }
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
     //Spark.session.sparkContext.parallelize(coords)
-    val coords = for (x <- 0 until W; y <- 0 until H) yield Coord(x, y)
+    val coords = for (x <- 0 until 360; y <- 0 until 180) yield Coord(x, y)
     coords.par
       .map(coord => predictTemperature(temperatures, Location.fromCoord(coord)))
       .map(temp  => interpolateColor(colors, temp))
       .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
       .toArray
-      //.collect()
+    //.collect()
   }
 }

@@ -43,11 +43,8 @@ case class Location(lat: Double, lon: Double) {
 }
 
 object Location {
-  val LAT = 90
-  val LON = 180
-
   def fromCoord(coord: Coord): Location = {
-    Location(LAT - (coord.y / 2), (coord.x / 2) - LON)
+    Location(90 - (coord.y / 2), (coord.x / 2) - 180)
   }
 }
 
