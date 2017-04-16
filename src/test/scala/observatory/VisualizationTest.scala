@@ -27,7 +27,7 @@ class VisualizationTest extends FunSuite with Matchers with TableDrivenPropertyC
 
     Inspectors.forEvery(testData) {
       case (x: Int, y: Int, expectedLocation: Location) =>
-        Location(baseHeight / 2 - (y / 2), (x / 2) - baseWidth / 2) shouldBe expectedLocation
+        Location.fromPixelIndex(x * y) shouldBe expectedLocation
     }
   }
 }
