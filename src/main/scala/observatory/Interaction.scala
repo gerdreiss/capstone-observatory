@@ -54,10 +54,11 @@ object Interaction {
     *                      y coordinates of the tile and the data to build the image from
     */
   def generateTiles[Data](yearlyData: Iterable[(Int, Data)], generateImage: (Int, Int, Int, Int, Data) => Unit): Unit = {
-    yearlyData.par.foreach {
-      case (year, data) => (0 to 3).par.foreach {
-        zoom => generateImage(year, zoom, 0, 0, data)
-      }
-    }
+    for {
+      (year, data) <- yearlyData
+      zoom <- 0 to 3
+      x <- 0 until 1 << zoom
+      y <- 0 until 1 << zoom
+    } generateImage(year, zoom, x, y, data)
   }
 }
