@@ -64,9 +64,10 @@ object Visualization {
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
     (0 until (360 * 180)).par
-      .map(index => predictTemperature(temperatures, Location.fromPixelIndex(index)))
-      .map(temp  => interpolateColor(colors, temp))
-      .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
+      .map(index    => Location.fromPixelIndex(index))
+      .map(location => predictTemperature(temperatures, location))
+      .map(temp     => interpolateColor(colors, temp))
+      .map(color    => Pixel(RGBColor(color.red, color.green, color.blue)))
       .toArray
   }
 }

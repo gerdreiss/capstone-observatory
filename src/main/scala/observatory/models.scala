@@ -4,7 +4,7 @@ import java.lang.Math._
 
 import org.apache.spark.sql.{Encoder, Encoders}
 
-import scala.math.{max, min}
+import scala.math.{Pi, atan, max, min, sinh, toDegrees}
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -46,6 +46,18 @@ object Location {
     def y: Int = index / 360
 
     Location(90 - y, x - 180)
+  }
+
+  def fromPixelIndexZoomXY(index: Int, zoom: Int, x: Int, y: Int): Location = {
+    def x0: Int = (index % 256) / 256 + x
+    def y0: Int = (index / 256) / 256 + y
+
+    val p: Int = 1 << zoom
+
+    def lat: Double = atan(sinh(Pi * (1.0 - 2.0 * y0 / p))) * 180.0 / Pi
+    def lon: Double = x0 * 360.0 / p - 180.0
+
+    Location(lat, lon)
   }
 }
 
