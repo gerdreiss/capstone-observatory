@@ -24,7 +24,7 @@ object implicits {
 case class Coord(x: Int, y: Int)
 
 case class Location(lat: Double, lon: Double) {
-  private val R = 6371e3 // metres
+  private val R = 6371e3
   private val p = 2
 
   private def distanceTo(loc: Location): Double = {

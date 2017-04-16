@@ -16,19 +16,7 @@ object Visualization {
     temperatures.find(_._1 == location)
       .map(_._2)
       .getOrElse({
-        //import org.apache.spark.sql.functions.sum
-        //import Spark.session.implicits._
-        //Spark.session.sparkContext
-        //  .parallelize(temperatures.toSeq)
-        //  .map(t => {
-        //    val idw = location.idw(t._1)
-        //    (t._2 * idw, idw)
-        //  })
-        //  .toDF("temp", "idw")
-        //  .select(sum($"temp").as[Double], sum($"idw").as[Double])
-        //  .map(row => row._1 / row._2)
-        //  .first()
-        val result = temperatures.par
+        val result: (Double, Double) = temperatures.par
           .map(t => {
             val idw = location.idw(t._1)
             (t._2 * idw, idw)
@@ -44,9 +32,11 @@ object Visualization {
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Double, Color)], value: Double): Color = {
-    points.dropWhile(_._1 < value).toList match {
-      case p1 :: p2 :: _ => interpolate(p1, p2, value)
-      case             _ => interpolate(points.init.last, points.last, value)
+    val ps = points.toSeq
+    ps.indexWhere(_._1 >= value) match {
+      case -1 => interpolate(points.init.last, points.last, value)
+      case  0 => interpolate(points.head, points.tail.head, value)
+      case  x => interpolate(ps(x - 1), ps(x), value)
     }
   }
 
@@ -73,14 +63,10 @@ object Visualization {
   }
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
-    //Spark.session.sparkContext.parallelize(coords)
-    //val coords = for (x <- 0 until 360; y <- 0 until 180) yield Coord(x, y)
-    //coords.par
-    (0 until (180 * 360)).par
+    (0 until (360 * 180)).par
       .map(index => predictTemperature(temperatures, Location.fromPixelIndex(index)))
       .map(temp  => interpolateColor(colors, temp))
       .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
       .toArray
-    //.collect()
   }
 }
