@@ -8,6 +8,13 @@ import org.scalatest.{FunSuite, Inspectors, Matchers}
 @RunWith(classOf[JUnitRunner])
 class VisualizationTest extends FunSuite with Matchers with TableDrivenPropertyChecks {
 
+  test("predictTemperature") {
+    val avg: Iterable[(Location, Double)] =
+      Extraction.locationYearlyAverageRecords(Extraction.locateTemperatures(2015, "/stations.csv", "/2015.csv"))
+    val temp: Double = Visualization.predictTemperature(avg, Location(90, -180))
+    println(temp)
+  }
+
   test("fromCoord") {
     val baseWidth = 360
     val baseHeight = 180

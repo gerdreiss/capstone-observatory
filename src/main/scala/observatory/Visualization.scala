@@ -13,7 +13,8 @@ object Visualization {
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Double)], location: Location): Double = {
-    temperatures.find(_._1 == location)
+    temperatures.par
+      .find(_._1 == location)
       .map(_._2)
       .getOrElse({
         val result: (Double, Double) = temperatures.par

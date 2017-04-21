@@ -10,7 +10,7 @@ import org.scalatest.junit.JUnitRunner
 class ExtractionTest extends FunSuite {
 
   test("Extraction.locateTemperatures from year 2015") {
-    val result = Extraction.locateTemperatures(2015, "/stations.csv", "/2015.csv")
+    val result: Iterable[(LocalDate, Location, Double)] = Extraction.locateTemperatures(2015, "/stations.csv", "/2015.csv")
     assert(result.nonEmpty)
   }
 
