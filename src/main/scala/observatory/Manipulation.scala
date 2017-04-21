@@ -21,7 +21,7 @@ object Manipulation {
     */
   def average(temperaturess: Iterable[Iterable[(Location, Double)]]): (Int, Int) => Double = {
     (x: Int, y: Int) => {
-      val ts: Iterable[Double] = temperaturess.map(temps => makeGrid(temps)(x, y))
+      val ts: Iterable[Double] = temperaturess.flatMap(_.find(_._1.isAt(x, y))).map(_._2)
       ts.sum / ts.size
     }
   }
