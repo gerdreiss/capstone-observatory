@@ -11,7 +11,7 @@ object Manipulation {
     *         returns the predicted temperature at this location
     */
   def makeGrid(temperatures: Iterable[(Location, Double)]): (Int, Int) => Double = {
-    (x: Int, y: Int) => temperatures.find(t => t._1.isAt(x, y)).map(_._2).getOrElse(Double.MinValue)
+    (x: Int, y: Int) => Visualization.predictTemperature(temperatures, Location(x, y))
   }
 
   /**
@@ -33,7 +33,7 @@ object Manipulation {
     */
   def deviation(temperatures: Iterable[(Location, Double)], normals: (Int, Int) => Double): (Int, Int) => Double = {
     (x: Int, y: Int) => {
-      temperatures.find(t => t._1.isAt(x, y)).map(_._2).map(a => math.pow(a - normals(x, y), 2)).sum / temperatures.size
+      makeGrid(temperatures)(x, y) - normals(x, y)
     }
   }
 }
