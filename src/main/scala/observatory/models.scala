@@ -38,6 +38,10 @@ case class Location(lat: Double, lon: Double) {
   def idw(loc: Location): Double = {
     1 / pow(distanceTo(loc), p)
   }
+
+  def isAt(x: Int, y: Int): Boolean = {
+    x == lat.toInt && y == lon.toInt
+  }
 }
 
 object Location {

@@ -11,7 +11,7 @@ object Manipulation {
     *         returns the predicted temperature at this location
     */
   def makeGrid(temperatures: Iterable[(Location, Double)]): (Int, Int) => Double = {
-    ???
+    (x: Int, y: Int) => temperatures.find(t => t._1.isAt(x, y)).map(_._2).getOrElse(Double.MinValue)
   }
 
   /**
@@ -20,18 +20,21 @@ object Manipulation {
     * @return A function that, given a latitude and a longitude, returns the average temperature at this location
     */
   def average(temperaturess: Iterable[Iterable[(Location, Double)]]): (Int, Int) => Double = {
-    ???
+    (x: Int, y: Int) => {
+      val ts: Iterable[Double] = temperaturess.map(temps => makeGrid(temps)(x, y))
+      ts.sum / ts.size
+    }
   }
 
   /**
     * @param temperatures Known temperatures
-    * @param normals A grid containing the “normal” temperatures
+    * @param normals      A grid containing the “normal” temperatures
     * @return A sequence of grids containing the deviations compared to the normal temperatures
     */
   def deviation(temperatures: Iterable[(Location, Double)], normals: (Int, Int) => Double): (Int, Int) => Double = {
-    ???
+    (x: Int, y: Int) => {
+      temperatures.find(t => t._1.isAt(x, y)).map(_._2).map(a => math.pow(a - normals(x, y), 2)).sum / temperatures.size
+    }
   }
-
-
 }
 
