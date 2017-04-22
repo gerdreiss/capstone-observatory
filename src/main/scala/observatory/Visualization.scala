@@ -13,15 +13,18 @@ object Visualization {
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Double)], location: Location): Double = {
-    temperatures.find(_._1 == location)
+    temperatures.par
+      .filter(_._1 == location)
       .map(_._2)
+      .headOption
       .getOrElse({
+        def op(dd1: (Double, Double), dd2: (Double, Double)) = (dd1._1 + dd2._1, dd1._2 + dd2._2)
         val result: (Double, Double) = temperatures.par
           .map(t => {
             val idw = location.idw(t._1)
             (t._2 * idw, idw)
           })
-          .foldLeft((0.0, 0.0))((d1, d2) => (d1._1 + d2._1, d1._2 + d2._2))
+          .aggregate[(Double, Double)]((0.0, 0.0))(op, op)
         result._1 / result._2
       })
   }
@@ -35,17 +38,17 @@ object Visualization {
     val ps = points.toSeq
     ps.indexWhere(_._1 >= value) match {
       case -1 => interpolate(points.init.last, points.last, value)
-      case  0 => interpolate(points.head, points.tail.head, value)
-      case  x => interpolate(ps(x - 1), ps(x), value)
+      case 0 => interpolate(points.head, points.tail.head, value)
+      case x => interpolate(ps(x - 1), ps(x), value)
     }
   }
 
   private def interpolate(p1: (Double, Color), p2: (Double, Color), value: Double): Color = {
     import observatory.implicits._
     Color(
-      interpolate(p1._1, p1._2.red,   p2._1, p2._2.red,   value).toRGB,
+      interpolate(p1._1, p1._2.red, p2._1, p2._2.red, value).toRGB,
       interpolate(p1._1, p1._2.green, p2._1, p2._2.green, value).toRGB,
-      interpolate(p1._1, p1._2.blue,  p2._1, p2._2.blue,  value).toRGB
+      interpolate(p1._1, p1._2.blue, p2._1, p2._2.blue, value).toRGB
     )
   }
 
@@ -64,10 +67,10 @@ object Visualization {
 
   private def pixels(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Array[Pixel] = {
     (0 until (360 * 180)).par
-      .map(index    => Location.fromPixelIndex(index))
+      .map(index => Location.fromPixelIndex(index))
       .map(location => predictTemperature(temperatures, location))
-      .map(temp     => interpolateColor(colors, temp))
-      .map(color    => Pixel(RGBColor(color.red, color.green, color.blue)))
+      .map(temp => interpolateColor(colors, temp))
+      .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
       .toArray
   }
 }
