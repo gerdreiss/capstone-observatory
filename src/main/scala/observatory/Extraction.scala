@@ -12,7 +12,6 @@ object Extraction {
 
   // Infer the schema, and register the DataSet as a table.
   import Spark.session.implicits._
-
   import observatory.implicits._
 
   // Set the log level to only print errors
@@ -26,13 +25,23 @@ object Extraction {
     */
   def locateTemperatures(year: Int, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
 
-    readStations(stationsFile).createOrReplaceTempView("stations")
-    readTemperatures(temperaturesFile).createOrReplaceTempView("temperatures")
+    val stations = readStations(stationsFile)
+    //.createOrReplaceTempView("stations")
+    val temperatures = readTemperatures(temperaturesFile) //.createOrReplaceTempView("temperatures")
 
-    Spark.session.sql(
-      """select s.lat, s.lon, t.month, t.day, t.temp
-           from stations s
-           join temperatures t on s.stn = t.stn and s.wban = t.wban""")
+    //Spark.session.sql(
+    //  """select s.lat, s.lon, t.month, t.day, t.temp
+    //       from stations s
+    //       join temperatures t on s.stn = t.stn and s.wban = t.wban""")
+    //  .map(row => (
+    //    LocalDate.of(year, row.getAs[Int]("month"), row.getAs[Int]("day")),
+    //    Location(row.getAs[Double]("lat"), row.getAs[Double]("lon")),
+    //    row.getAs[Double]("temp")))
+    //  .collect()
+
+    stations.join(temperatures,
+        stations("stn").eqNullSafe(temperatures("stn")) &&
+        stations("wban").eqNullSafe(temperatures("wban")))
       .map(row => (
         LocalDate.of(year, row.getAs[Int]("month"), row.getAs[Int]("day")),
         Location(row.getAs[Double]("lat"), row.getAs[Double]("lon")),

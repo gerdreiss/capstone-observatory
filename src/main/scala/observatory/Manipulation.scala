@@ -1,5 +1,8 @@
 package observatory
 
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
+
 /**
   * 4th milestone: value-added information
   */
@@ -21,6 +24,8 @@ object Manipulation {
     */
   def average(temperaturess: Iterable[Iterable[(Location, Double)]]): (Int, Int) => Double = {
     (x: Int, y: Int) => {
+      val tempsPar = temperaturess.par
+      tempsPar.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(4))
       val ts: Iterable[Double] = temperaturess.par
         .map(temps => makeGrid(temps)(x, y))
         .seq
@@ -35,7 +40,10 @@ object Manipulation {
     */
   def deviation(temperatures: Iterable[(Location, Double)], normals: (Int, Int) => Double): (Int, Int) => Double = {
     (x: Int, y: Int) => {
-      math.sqrt(math.pow(makeGrid(temperatures)(x, y) - normals(x, y), 2) / temperatures.size)
+      // Standard deviation
+      //math.sqrt(math.pow(makeGrid(temperatures)(x, y) - normals(x, y), 2) / temperatures.size)
+      // Just deviation
+      makeGrid(temperatures)(x, y) - normals(x, y)
     }
   }
 }
