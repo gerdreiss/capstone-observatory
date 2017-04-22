@@ -1,8 +1,5 @@
 package observatory
 
-import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-
 /**
   * 4th milestone: value-added information
   */
@@ -24,9 +21,7 @@ object Manipulation {
     */
   def average(temperaturess: Iterable[Iterable[(Location, Double)]]): (Int, Int) => Double = {
     (x: Int, y: Int) => {
-      val tempsPar = temperaturess.par
-      tempsPar.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(4))
-      val ts: Iterable[Double] = temperaturess.par
+      val ts: Iterable[Double] = temperaturess
         .map(temps => makeGrid(temps)(x, y))
         .seq
       ts.sum / ts.size
