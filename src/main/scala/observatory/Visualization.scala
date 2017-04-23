@@ -77,10 +77,10 @@ object Visualization {
     val idxPar = (0 until (360 * 180)).par
     idxPar.tasksupport = taskSupport
     idxPar
-      .map(index => Location.fromPixelIndex(index))
-      .map(location => predictTemperature(temperatures, location))
-      .map(temp => interpolateColor(colors, temp))
-      .map(color => Pixel(RGBColor(color.red, color.green, color.blue)))
+      .map(idx => Location.fromPixelIndex(idx))
+      .map(loc => predictTemperature(temperatures, loc))
+      .map(tmp => interpolateColor(colors, tmp))
+      .map(col => Pixel(RGBColor(col.red, col.green, col.blue)))
       .toArray
   }
 }

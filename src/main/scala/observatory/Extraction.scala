@@ -25,8 +25,7 @@ object Extraction {
     */
   def locateTemperatures(year: Int, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
 
-    val stations = readStations(stationsFile)
-    //.createOrReplaceTempView("stations")
+    val stations = readStations(stationsFile)             //.createOrReplaceTempView("stations")
     val temperatures = readTemperatures(temperaturesFile) //.createOrReplaceTempView("temperatures")
 
     //Spark.session.sql(
@@ -45,29 +44,42 @@ object Extraction {
       .map(row => (
         LocalDate.of(year, row.getAs[Int]("month"), row.getAs[Int]("day")),
         Location(row.getAs[Double]("lat"), row.getAs[Double]("lon")),
-        row.getAs[Double]("temp")))
+        row.getAs[Double]("temp").toCelsius
+      ))
       .collect()
   }
 
   private def readStations(stationsFile: String) = {
-    Spark.session.sparkContext
-      .textFile(Extraction.getClass.getResource(stationsFile).toExternalForm)
-      .map(_.split(","))
-      .filter(Station.valid)
-      .map(Station.parse)
-      .filter(_.lat != 0.0)
-      .filter(_.lon != 0.0)
-      .toDF()
+    //Spark.session.sparkContext
+    //  .textFile(Extraction.getClass.getResource(stationsFile).toExternalForm)
+    //  .map(_.split(","))
+    //  .filter(Station.valid)
+    //  .map(Station.parse)
+    //  .filter(_.lat != 0.0)
+    //  .filter(_.lon != 0.0)
+    //  .toDF()
+    Spark.session.read
+      .option("header", value = false)
+      .option("mode", "FAILFAST")
+      .schema(Station.structType)
+      .csv(Extraction.getClass.getResource(stationsFile).toExternalForm).as[Station]
+      .filter((station: Station) => station.lat.isDefined && station.lon.isDefined)
   }
 
   private def readTemperatures(temperaturesFile: String) = {
-    Spark.session.sparkContext
-      .textFile(Extraction.getClass.getResource(temperaturesFile).toExternalForm)
-      .map(_.split(","))
-      .filter(Record.valid)
-      .map(Record.parse)
-      .filter(_.temp != 9999.9)
-      .toDF()
+    //Spark.session.sparkContext
+    //  .textFile(Extraction.getClass.getResource(temperaturesFile).toExternalForm)
+    //  .map(_.split(","))
+    //  .filter(Record.valid)
+    //  .map(Record.parse)
+    //  .filter(_.temp != 9999.9)
+    //  .toDF()
+    Spark.session.read
+      .option("header", value = false)
+      .option("mode", "FAILFAST")
+      .schema(Record.structType)
+      .csv(Extraction.getClass.getResource(temperaturesFile).toExternalForm).as[Record]
+      .filter((record: Record) => record.temp != 9999.9)
   }
 
   /**

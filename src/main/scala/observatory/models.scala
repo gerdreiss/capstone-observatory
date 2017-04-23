@@ -2,16 +2,21 @@ package observatory
 
 import java.lang.Math._
 
+import org.apache.spark.sql.types.DataTypes.{DoubleType, IntegerType}
+import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.{Encoder, Encoders}
 
-import scala.math.{Pi, atan, max, min, sinh, toDegrees}
+import scala.math.{Pi, atan, max, min, sinh}
 import scala.reflect.ClassTag
-import scala.util.Try
 
 object implicits {
 
   implicit class DoubleToRGB(value: Double) {
     def toRGB: Int = max(0, min(255, math.round(value).toInt))
+  }
+
+  implicit class F2C(f: Double) {
+    def toCelsius: Double = (f - 32) * 5 / 9
   }
 
   implicit def kryoEncoder[A](implicit ct: ClassTag[A]): Encoder[A] =
@@ -40,7 +45,7 @@ case class Location(lat: Double, lon: Double) {
   }
 
   def isAt(x: Int, y: Int): Boolean = {
-    x == lat.toInt && y == lon.toInt
+    lat.toInt == x && lon.toInt == y
   }
 }
 
@@ -67,42 +72,56 @@ object Location {
 
 case class Color(red: Int, green: Int, blue: Int)
 
-case class Station(stn: Int, wban: Int, lat: Double, lon: Double)
+//case class Station(stn: Int, wban: Int, lat: Double, lon: Double)
+//object Station {
+//  def valid(fields: Array[String]): Boolean = {
+//    fields.length == 4 && fields(2).nonEmpty && fields(3).nonEmpty
+//  }
+//  def parse(fields: Array[String]): Station = {
+//    Station(
+//      stn = Try(fields(0).toInt).getOrElse(0),
+//      wban = Try(fields(1).toInt).getOrElse(0),
+//      lat = fields(2).toDouble,
+//      lon = fields(3).toDouble)
+//  }
+//}
+
+case class Station(stn: Option[Int], wban: Option[Int], lat: Option[Double], lon: Option[Double])
 
 object Station {
 
-  def valid(fields: Array[String]): Boolean = {
-    fields.length == 4 && fields(2).nonEmpty && fields(3).nonEmpty
-  }
-
-  def parse(fields: Array[String]): Station = {
-    Station(
-      stn = Try(fields(0).toInt).getOrElse(0),
-      wban = Try(fields(1).toInt).getOrElse(0),
-      lat = fields(2).toDouble,
-      lon = fields(3).toDouble)
-  }
+  val structType = StructType(Seq(
+    StructField("stn", IntegerType, nullable = true),
+    StructField("wban", IntegerType, nullable = true),
+    StructField("lat", DoubleType, nullable = true),
+    StructField("lon", DoubleType, nullable = true)
+  ))
 }
 
-case class Record(stn: Int, wban: Int, month: Int, day: Int, temp: Double)
+//case class Record(stn: Int, wban: Int, month: Int, day: Int, temp: Double)
+//object Record {
+//  def valid(fields: Array[String]): Boolean = {
+//    fields.length == 5 && fields(2).nonEmpty && fields(3).nonEmpty && fields(4).nonEmpty
+//  }
+//  def parse(fields: Array[String]): Record = {
+//    Record(
+//      stn = Try(fields(0).toInt).getOrElse(0),
+//      wban = Try(fields(1).toInt).getOrElse(0),
+//      month = fields(2).toInt,
+//      day = fields(3).toInt,
+//      temp = fields(4).toCelsius)
+//  }
+//}
+
+case class Record(stn: Option[Int], wban: Option[Int], month: Int, day: Int, temp: Double)
 
 object Record {
-
-  implicit class F2C(f: String) {
-    def toCelsius: Double = (f.toDouble - 32) * 5 / 9
-  }
-
-  def valid(fields: Array[String]): Boolean = {
-    fields.length == 5 && fields(2).nonEmpty && fields(3).nonEmpty && fields(4).nonEmpty
-  }
-
-  def parse(fields: Array[String]): Record = {
-    Record(
-      stn = Try(fields(0).toInt).getOrElse(0),
-      wban = Try(fields(1).toInt).getOrElse(0),
-      month = fields(2).toInt,
-      day = fields(3).toInt,
-      temp = fields(4).toCelsius)
-  }
+  val structType = StructType(Seq(
+    StructField("stn", IntegerType, nullable = true),
+    StructField("wban", IntegerType, nullable = true),
+    StructField("month", IntegerType, nullable = false),
+    StructField("day", IntegerType, nullable = false),
+    StructField("temp", DoubleType, nullable = false)
+  ))
 }
 
