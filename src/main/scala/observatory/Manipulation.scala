@@ -1,9 +1,13 @@
 package observatory
 
+import scala.collection.parallel.immutable.ParMap
+
 /**
   * 4th milestone: value-added information
   */
 object Manipulation {
+
+  private val locations = for (lat <- -89 to 90; lon <- -180 to 179) yield Location(lat, lon)
 
   /**
     * @param temperatures Known temperatures
@@ -11,14 +15,9 @@ object Manipulation {
     *         returns the predicted temperature at this location
     */
   def makeGrid(temperatures: Iterable[(Location, Double)]): (Int, Int) => Double = {
-    //(x: Int, y: Int) => Visualization.predictTemperature(temperatures, Location(x.toDouble, y.toDouble))
-    val grid: Map[Location, Double] = {
-      for {
-        lat <- -89 to 90
-        lon <- -180 to 179
-      } yield Location(lat, lon) -> Visualization.predictTemperature(temperatures, Location(lat, lon))
-    }.toMap
-
+    val grid: ParMap[Location, Double] = locations.par
+      .map(loc => loc -> Visualization.predictTemperature(temperatures, loc))
+      .toMap
     (x: Int, y: Int) => grid(Location(x, y))
   }
 
@@ -28,18 +27,11 @@ object Manipulation {
     * @return A function that, given a latitude and a longitude, returns the average temperature at this location
     */
   def average(temperaturess: Iterable[Iterable[(Location, Double)]]): (Int, Int) => Double = {
-    //(x: Int, y: Int) => {
-    //  val ts: Iterable[Double] = temperaturess.par
-    //    .map(temps => makeGrid(temps)(x, y))
-    //    .seq
-    //  ts.sum / ts.size
-    //}
     val grids: Iterable[(Int, Int) => Double] = temperaturess.map(makeGrid)
-
-    (x: Int, y: Int) => {
-      val ts = grids.map(_(x, y))
-      ts.sum / ts.size
-    }
+    val averages: ParMap[Location, Double] = locations.par
+      .map(l => l -> grids.aggregate(0.0)(_ + _ (l.lat.toInt, l.lon.toInt), _ + _) / grids.size.toDouble)
+      .toMap
+    (x: Int, y: Int) => averages(Location(x, y))
   }
 
   /**
@@ -48,11 +40,12 @@ object Manipulation {
     * @return A sequence of grids containing the deviations compared to the normal temperatures
     */
   def deviation(temperatures: Iterable[(Location, Double)], normals: (Int, Int) => Double): (Int, Int) => Double = {
+    val grid = makeGrid(temperatures)
     (x: Int, y: Int) => {
       // Standard deviation
-      //math.sqrt(math.pow(makeGrid(temperatures)(x, y) - normals(x, y), 2) / temperatures.size)
+      //math.sqrt(math.pow(grid(x, y) - normals(x, y), 2) / temperatures.size)
       // Just deviation
-      makeGrid(temperatures)(x, y) - normals(x, y)
+      grid(x, y) - normals(x, y)
     }
   }
 }

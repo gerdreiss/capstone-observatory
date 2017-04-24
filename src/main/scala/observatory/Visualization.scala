@@ -10,7 +10,7 @@ import scala.concurrent.forkjoin.ForkJoinPool
   */
 object Visualization {
 
-  private val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(4))
+  private val taskSupport = new ForkJoinTaskSupport(new ForkJoinPool(8))
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
@@ -26,9 +26,7 @@ object Visualization {
 
   private def inverseDistanceWeighting(temperatures: Iterable[(Location, Double)], location: Location): Double = {
     def op(dd1: (Double, Double), dd2: (Double, Double)) = (dd1._1 + dd2._1, dd1._2 + dd2._2)
-    val tempsPar = temperatures.par
-    tempsPar.tasksupport = taskSupport
-    val result: (Double, Double) = tempsPar
+    val result: (Double, Double) = temperatures
       .map(t => {
         val idw = location.idw(t._1)
         (t._2 * idw, idw)
