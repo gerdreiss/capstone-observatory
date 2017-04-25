@@ -25,7 +25,12 @@ object Visualization2 {
     d10: Double,
     d11: Double
   ): Double = {
-    ???
+    // If we choose a coordinate system
+    // in which the four points where f is known
+    // are (0, 0), (0, 1), (1, 0), and (1, 1)
+    // then the interpolation formula simplifies to
+    // f(x, y) ~ f(0, 0)(1 - x)(1 - y) + f(1, 0)x(1 - y) + f(0, 1)(1 - x)y + f(1, 1)xy
+    d00 * (1 - x) * (1 - y) + d10 * x  * (1 - y) + d01 * (1 - x) * y + d11 * x * y
   }
 
   /**
