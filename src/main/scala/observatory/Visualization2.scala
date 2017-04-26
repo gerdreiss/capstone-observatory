@@ -8,6 +8,9 @@ import observatory.Interaction.tileLocation
   */
 object Visualization2 {
 
+  private val side: Int = 256
+  private val alpha: Int = 127
+
   /**
     * @param x   X coordinate between 0 and 1
     * @param y   Y coordinate between 0 and 1
@@ -49,12 +52,12 @@ object Visualization2 {
     x: Int,
     y: Int
   ): Image = {
-    Image(256, 256, pixels(grid, colors, zoom, x, y))
+    Image(side, side, pixels(grid, colors, zoom, x, y))
   }
 
   private def pixels(grid: (Int, Int) => Double, colors: Iterable[(Double, Color)], zoom: Int, x: Int, y: Int) = {
-    (0 until (256 * 256)).par
-      .map(index => tileLocation(zoom, (index % 256) / 256 + x, (index / 256) / 256 + y))
+    (0 until (side * side)).par
+      .map(index => tileLocation(zoom, (index % side) / side + x, (index / side) / side + y))
       .map(location => {
         val x1 = location.lon - location.lon.floor.toInt
         val y1 = location.lat.ceil.toInt - location.lat
@@ -65,7 +68,9 @@ object Visualization2 {
         bilinearInterpolation(x1, y1, d00, d01, d10, d11)
       })
       .map(temperature => Visualization.interpolateColor(colors, temperature))
-      .map(color => Pixel(color.red, color.green, color.blue, 127))
+      .map(color => {
+        Pixel(color.red, color.green, color.blue, alpha)
+      })
       .toArray
   }
 }
