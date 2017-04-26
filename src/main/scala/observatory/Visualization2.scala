@@ -68,9 +68,7 @@ object Visualization2 {
         bilinearInterpolation(x1, y1, d00, d01, d10, d11)
       })
       .map(temperature => Visualization.interpolateColor(colors, temperature))
-      .map(color => {
-        Pixel(color.red, color.green, color.blue, alpha)
-      })
+      .map(color => Pixel(color.red, color.green, color.blue, alpha))
       .toArray
   }
 }
